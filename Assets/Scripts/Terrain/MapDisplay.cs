@@ -1,9 +1,20 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class MapDisplay : MonoBehaviour
 {
-    public Renderer textureRenderer;
-    public MeshFilter meshFilter;
+	public GameObject meshParent;
+
+	GameObject addNewMesh() {
+		GameObject g = new GameObject("MeshPart");
+		g.transform.parent = meshParent.transform;
+		g.transform.localPosition = Vector3.zero;
+		g.AddComponent(typeof(MeshRenderer));
+		g.AddComponent(typeof(MeshFilter));
+		g.AddComponent(typeof(MeshCollider));
+
+		return g;
+	}
 
     public void DrawNoiseMap(float[,] noiseMap)
     {
@@ -24,12 +35,23 @@ public class MapDisplay : MonoBehaviour
         texture.SetPixels(colorMap);
         texture.Apply();
 
-        textureRenderer.sharedMaterial.mainTexture = texture;
-        textureRenderer.transform.localScale = new Vector3(width, 1, height);
+		foreach(Transform child in meshParent.transform) {
+    	    child.GetComponent<MeshRenderer>().sharedMaterial.mainTexture = texture;
+	        child.transform.localScale = new Vector3(width, 1, height);
+		}
     }
 
     public void DrawMesh(MeshData data)
     {
-        meshFilter.sharedMesh = data.CreateMesh();
+		foreach(Transform child in meshParent.transform) {
+			DestroyImmediate(child.gameObject);
+		}
+
+		List<Mesh> meshes = data.CreateMesh();
+        for(int i = 0; i < meshes.Count; i++)
+		{
+			GameObject g = addNewMesh();
+			g.GetComponent<MeshFilter>().mesh = meshes[i];
+		}
     }
 }

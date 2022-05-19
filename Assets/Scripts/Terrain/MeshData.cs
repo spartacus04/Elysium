@@ -1,63 +1,92 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class MeshData
 {
-    public Vector3[] Vertices { get; set; }
-    public int[] Triangles { get; set; }
-    public Vector2[] UVs { get; set; }
-    
-    private int triangleIndex;
+	public int chunkSize { get; protected set; }
+	public struct Data {
+    	public int triangleIndex {get; set; }
+    	public Vector3[] Vertices { get; set; }
+    	public int[] Triangles { get; set; }
+    	public Vector2[] UVs { get; set; }
 
-    public MeshData(int meshWidth, int meshHeight, Terrain terrain, float multiplier, float treshold = 0.1f) {
-        // Init
-        Vertices = new Vector3[meshWidth * meshHeight];
-        UVs = new Vector2[meshWidth * meshHeight];
-        Triangles = new int[(meshWidth - 1) * (meshHeight - 1) * 6];
+		public void AddTriangle(int a, int b, int c)
+    	{
+        	Triangles[triangleIndex] = a;
+        	Triangles[triangleIndex + 1] = b;
+        	Triangles[triangleIndex + 2] = c;
 
-        float topLeftX = (terrain.Width - 1) / -2f;
+        	triangleIndex += 3;
+    	}
+	}
+
+    public Data[,] meshesData { get; protected set; }
+
+    public MeshData(Terrain terrain, int chunkSize, float multiplier, float treshold = 0.1f) {
+		int width = terrain.Width / chunkSize;
+		int height = terrain.Height / chunkSize;
+		meshesData = new Data[width, height];
+
+		float topLeftX = (terrain.Width - 1) / -2f;
         float topLeftZ = (terrain.Height - 1) / 2f;
 
-        int i = 0;
+		for(int chunkX = 0; chunkX < width; chunkX++) {
+			for(int chunkY = 0; chunkY < height; chunkY++) {
 
-        for (int y = 0; y < terrain.Height; y++)
-        {
-            for (int x = 0; x < terrain.Width; x++)
-            {
-                Vertices[i] = new Vector3(topLeftX + x, terrain.HeightMap[x, y] * multiplier, topLeftZ - y);
-                UVs[i] = new Vector2(x / (float)terrain.Width, y / (float)terrain.Height);
+				int chunkOffsetX = chunkX * chunkSize;
+				int chunkOffsetY = chunkY * chunkSize;
 
-                if (terrain.HeightMap[x, y] >= treshold) {
-                    if (x < terrain.Width - 1 && y < terrain.Height - 1)
-                    {
-                        AddTriangle(i, i + terrain.Width + 1, i + terrain.Width);
-                        AddTriangle(i, i + 1, i + terrain.Width + 1);
-                    }
+				int i = 0;
+				for(int x = 0; x < chunkSize; x++) {
+					for(int y = 0; y < chunkSize; y++) {
+						Data data = new Data();
 
-                }
-                
-                i++;
-            }
-        }
+						data.triangleIndex = 0;
+						data.Vertices = new Vector3[chunkSize * chunkSize];
+						data.Triangles = new int[chunkSize * chunkSize * 6];
+						data.UVs = new Vector2[chunkSize * chunkSize];
+
+						data.Vertices[i] = new Vector3(topLeftX + chunkOffsetX + x, terrain.HeightMap[x + chunkOffsetX, y + chunkOffsetY] * multiplier, topLeftZ - chunkOffsetY - y);
+						data.UVs[i] = new Vector2((float)x / (float)chunkSize, (float)y / (float)chunkSize);
+
+						//if (terrain.HeightMap[x, y] >= treshold) {
+        	            	if (x < chunkSize - 1 && y < chunkSize - 1)
+            	    	    {
+            		            data.AddTriangle(i, i + chunkSize + 1, i + chunkSize);
+        	        	        data.AddTriangle(i, i + 1, i + chunkSize + 1);
+    	                	}
+    	            	//}
+
+						meshesData[chunkX, chunkY] = data;
+						i++;
+					}
+				}
+
+				Debug.Log("Chunk " + chunkX + ", " + chunkY + " created");
+			};
+		};
     }
 
-    public void AddTriangle(int a, int b, int c)
-    {
-        Triangles[triangleIndex] = a;
-        Triangles[triangleIndex + 1] = b;
-        Triangles[triangleIndex + 2] = c;
+    
 
-        triangleIndex += 3;
-    }
-
-    public Mesh CreateMesh()
+    public List<Mesh> CreateMesh()
     {
-        Mesh mesh = new Mesh();
-        mesh.vertices = Vertices;
-        mesh.triangles = Triangles;
-        mesh.uv = UVs;
-        mesh.RecalculateNormals();
-        return mesh;
+		List<Mesh> meshes = new List<Mesh>();
+
+		for(int x = 0; x < meshesData.GetLength(0); x++) {
+			for(int y = 0; y < meshesData.GetLength(1); y++) {
+				Data data = meshesData[x, y];
+
+				Mesh mesh = new Mesh();
+				mesh.vertices = data.Vertices;
+				mesh.triangles = data.Triangles;
+				mesh.uv = data.UVs;
+				mesh.RecalculateNormals();
+
+				meshes.Add(mesh);
+			}
+		}
+		
+        return meshes;
     }
 }
