@@ -23,11 +23,14 @@ public class MapGenerator : MonoBehaviour
 		int mapHeight = chunksHeight * chunkSize;
 
         Terrain t = new TerrainBuilder(mapWidth, mapHeight, noiseScale, seed, octaves, persistance, lacunarity, offset).Normalize().Build();
+        GetComponent<HydraulicErosion>().Erode(t.HeightMap, t.Width);
         Terrain outp = (t - Utils.GetFalloffMap(t));
 
+
         MapDisplay display = FindObjectOfType<MapDisplay>();
-        display.DrawMesh(new MeshData(t, chunkSize, 1000));
-        //display.DrawNoiseMap(outp.Normalized().HeightMap);
+        display.clear();
+        display.DrawMesh(new MeshData(outp, chunkSize));
+        display.DrawNoiseMap(outp.Normalized().HeightMap, chunkSize, 10000);
     }
 
     private void OnValidate()

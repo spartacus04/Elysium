@@ -55,6 +55,20 @@ public class Terrain
         return this;
     }
 
+    public Terrain Invert()
+    {
+        // Inverts the heightmap
+        for (int x = 0; x < this.Width; x++)
+        {
+            for (int y = 0; y < this.Height; y++)
+            {
+                HeightMap[x, y] = 1 - HeightMap[x, y];
+            }
+        }
+
+        return this;
+    }
+
     public Terrain Normalized() {
         return new Terrain(this).Normalize();
     }
@@ -92,6 +106,21 @@ public class Terrain
         return this.Normalize();
     }
 
+    public Terrain Subtract(Terrain terrain)
+    {
+        Terrain b = terrain.Scale(Width, Height);
+
+        for (int x = 0; x < Width; x++)
+        {
+            for (int y = 0; y < Height; y++)
+            {
+                HeightMap[x, y] -= b.HeightMap[x, y];
+            }
+        }
+
+        return this.Normalize();
+    }
+
     public Terrain Multiply(int value)
     {
         for (int i = 0; i < this.Width; i++)
@@ -103,6 +132,11 @@ public class Terrain
         }
 
         return this;
+    }
+
+    public Terrain Clone()
+    {
+        return new Terrain(this);
     }
 
     //TODO: textures

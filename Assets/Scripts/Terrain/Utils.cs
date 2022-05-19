@@ -24,8 +24,8 @@ public static class Utils
     
     private static float falloffCurve(float x)
     {
-        float a = 3;
-        float b = 2.2f;
+        float a = 2.5f;
+        float b = 0.5f;
 
         return Mathf.Pow(x, a) / (Mathf.Pow(x, a) + Mathf.Pow(b - b * x, a));
     }

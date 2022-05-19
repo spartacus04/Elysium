@@ -50,7 +50,7 @@ public class HydraulicErosion : MonoBehaviour
         }
     }
 
-    public void Erode(float[] map, int mapSize, int numIterations = 1, bool resetSeed = false)
+    public void Erode(float[,] map, int mapSize, int numIterations = 1, bool resetSeed = false)
     {
         Initialize(mapSize, resetSeed);
 
@@ -112,10 +112,15 @@ public class HydraulicErosion : MonoBehaviour
 
                     // Add the sediment to the four nodes of the current cell using bilinear interpolation
                     // Deposition is not distributed over a radius (like erosion) so that it can fill small pits
-                    map[dropletIndex] += amountToDeposit * (1 - cellOffsetX) * (1 - cellOffsetY);
-                    map[dropletIndex + 1] += amountToDeposit * cellOffsetX * (1 - cellOffsetY);
-                    map[dropletIndex + mapSize] += amountToDeposit * (1 - cellOffsetX) * cellOffsetY;
-                    map[dropletIndex + mapSize + 1] += amountToDeposit * cellOffsetX * cellOffsetY;
+                    
+                    // map[dropletIndex] += amountToDeposit * (1 - cellOffsetX) * (1 - cellOffsetY);
+                    increaseArrAtIndex(map, dropletIndex, amountToDeposit * (1 - cellOffsetX) * (1 - cellOffsetY));
+                    // map[dropletIndex + 1] += amountToDeposit * cellOffsetX * (1 - cellOffsetY);
+                    increaseArrAtIndex(map, dropletIndex + 1, amountToDeposit * cellOffsetX * (1 - cellOffsetY));
+                    // map[dropletIndex + mapSize] += amountToDeposit * (1 - cellOffsetX) * cellOffsetY;
+                    increaseArrAtIndex(map, dropletIndex + mapSize, amountToDeposit * (1 - cellOffsetX) * cellOffsetY);
+                    // map[dropletIndex + mapSize + 1] += amountToDeposit * cellOffsetX * cellOffsetY;
+                    increaseArrAtIndex(map, dropletIndex + mapSize + 1, amountToDeposit * cellOffsetX * cellOffsetY);
 
                 }
                 else
@@ -129,8 +134,8 @@ public class HydraulicErosion : MonoBehaviour
                     {
                         int nodeIndex = erosionBrushIndices[dropletIndex][brushPointIndex];
                         float weighedErodeAmount = amountToErode * erosionBrushWeights[dropletIndex][brushPointIndex];
-                        float deltaSediment = (map[nodeIndex] < weighedErodeAmount) ? map[nodeIndex] : weighedErodeAmount;
-                        map[nodeIndex] -= deltaSediment;
+                        float deltaSediment = (getArrAtIndex(map, nodeIndex) < weighedErodeAmount) ? getArrAtIndex(map, nodeIndex) : weighedErodeAmount;
+                        increaseArrAtIndex(map, nodeIndex, -deltaSediment);
                         sediment += deltaSediment;
                     }
                 }
@@ -142,7 +147,18 @@ public class HydraulicErosion : MonoBehaviour
         }
     }
 
-    HeightAndGradient CalculateHeightAndGradient(float[] nodes, int mapSize, float posX, float posY)
+    float getArrAtIndex(float[,] arr, int index)
+    {
+        return arr[index / arr.GetLength(0), index % arr.GetLength(0)];
+    }
+    void increaseArrAtIndex(float[,] heightmap, int index, float value)
+    {
+        int x = index % heightmap.GetLength(0);
+        int y = index / heightmap.GetLength(0);
+        heightmap[x, y] += value;
+    }
+
+    HeightAndGradient CalculateHeightAndGradient(float[,] nodes, int mapSize, float posX, float posY)
     {
         int coordX = (int)posX;
         int coordY = (int)posY;
@@ -153,10 +169,10 @@ public class HydraulicErosion : MonoBehaviour
 
         // Calculate heights of the four nodes of the droplet's cell
         int nodeIndexNW = coordY * mapSize + coordX;
-        float heightNW = nodes[nodeIndexNW];
-        float heightNE = nodes[nodeIndexNW + 1];
-        float heightSW = nodes[nodeIndexNW + mapSize];
-        float heightSE = nodes[nodeIndexNW + mapSize + 1];
+        float heightNW = getArrAtIndex(nodes, nodeIndexNW); //nodes[nodeIndexNW];
+        float heightNE = getArrAtIndex(nodes, nodeIndexNW + 1); //nodes[nodeIndexNW + 1];
+        float heightSW = getArrAtIndex(nodes, nodeIndexNW + mapSize); //nodes[nodeIndexNW + mapSize];
+        float heightSE = getArrAtIndex(nodes, nodeIndexNW + mapSize + 1); //nodes[nodeIndexNW + mapSize + 1];
 
         // Calculate droplet's direction of flow with bilinear interpolation of height difference along the edges
         float gradientX = (heightNE - heightNW) * (1 - y) + (heightSE - heightSW) * y;
